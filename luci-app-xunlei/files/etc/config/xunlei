@@ -1,0 +1,10 @@
+
+config xunlei 'config'
+	option enable '0'
+	option device '/mnt/sda1'
+	option up '0'
+	option file '/mnt/sda1'
+	option xware 'Xware1.0.31_mipseb_32_uclibc.zip'
+	option vod '1'
+	option url 'https://git.oschina.net/baibihuiyi/xware_1.0.31/raw/master'
+

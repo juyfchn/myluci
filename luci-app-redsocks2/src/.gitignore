@@ -1,0 +1,6 @@
+*.o
+config.h
+tags
+redsocks2
+gen/
+.depend

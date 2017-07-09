@@ -1,0 +1,87 @@
+#!/bin/sh /etc/rc.common
+#
+# Copyright (C) 2015 OpenWrt-dist
+# Copyright (C) 2015 Jian Chang <aa65535@live.com>
+#
+# This is free software, licensed under the GNU General Public License v3.
+# See /LICENSE for more information.
+#
+
+START=90
+
+SERVICE_USE_PID=1
+SERVICE_WRITE_PID=1
+SERVICE_DAEMONIZE=1
+
+xappend() {
+	parms="$parms $1"
+}
+
+append_bool() {
+	local section="$1"
+	local option="$2"
+	local value="$3"
+	local _loctmp
+	config_get_bool _loctmp "$section" "$option"
+	[ "$_loctmp" = 1 ] || return 0
+	xappend "$value"
+}
+
+append_parm() {
+	local section="$1"
+	local option="$2"
+	local switch="$3"
+	local _loctmp
+	config_get _loctmp "$section" "$option"
+	[ -z "$_loctmp" ] && return 0
+	xappend "$switch $_loctmp"
+}
+
+start_chinadns() {
+	local enable
+	config_get_bool enable $1 enable
+	[ "$enable" = 1 ] || return 0
+	append_parm $1 port "-p"
+	append_parm $1 server "-s"
+	append_parm $1 chnroute "-c"
+	append_bool $1 bidirectional "-d"
+	append_bool $1 apnt_en "-m"
+	service_start /usr/bin/chinadns \
+	$parms
+	return $?
+}
+
+dnsmasq_set(){
+	local enable
+	local set_dnsmasq
+	local port
+	config_get_bool enable $1 enable
+	config_get set_dnsmasq $1 set_dnsmasq
+	config_get port $1 port
+
+	if [ "$enable" = 1 ]; then
+	[ $set_dnsmasq = '1' ] && {
+		uci delete dhcp.@dnsmasq[0].server
+		uci add_list dhcp.@dnsmasq[0].server=127.0.0.1#$port
+	}
+	else
+	local dnsmasq=`uci get dhcp.@dnsmasq[0].server`
+	if [ "$dnsmasq" = 127.0.0.1#$port ]; then
+	uci delete dhcp.@dnsmasq[0].server
+	fi
+
+	fi
+		uci commit dhcp
+		/etc/init.d/dnsmasq restart
+}
+
+
+start() {
+	config_load chinadns
+	config_foreach start_chinadns chinadns
+	config_foreach dnsmasq_set chinadns
+}
+
+stop() {
+	service_stop /usr/bin/chinadns
+}
